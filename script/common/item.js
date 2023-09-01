@@ -2256,6 +2256,7 @@ export class SymbaroumItem extends Item {
         base.getTarget= true;
         base.targetMandatory= true;
         base.maintain = game.symbaroum.config.MAINTAIN_RES;
+        base.maintain_master = game.symbaroum.config.MAINTAIN;
         base.casting = game.symbaroum.config.CASTING_RES;
         base.confusion =true;
         base.activelyMaintainedTargetEffect = [CONFIG.statusEffects.find(e => e.id === "confusion")];
@@ -2427,6 +2428,7 @@ export class SymbaroumItem extends Item {
         base.traditions = [game.symbaroum.config.TRAD_WITCHCRAFT];
         base.casting = game.symbaroum.config.CASTING_RES;
         base.maintain = game.symbaroum.config.MAINTAIN_RES;
+        base.maintain_master = game.symbaroum.config.MAINTAIN;
         base.targetResistAttribute= "resolute";
         base.activelyMaintainedTargetEffect= [CONFIG.statusEffects.find(e => e.id === "maltransformation")];
         return(base);
@@ -3171,7 +3173,29 @@ export async function modifierDialog(functionStuff){
                 if(poisoner){
                     functionStuff.poison = Number(html.find("#poisoner")[0].value);
                 }
-                functionStuff.notResisted = functionStuff.notResisted ?? !(((functionStuff.casting === game.symbaroum.config.CASTING_RES) && !functionStuff.isMaintained ) || ((functionStuff.maintain === game.symbaroum.config.MAINTAIN_RES) && functionStuff.isMaintained));
+                //functionStuff.notResisted = functionStuff.notResisted ?? !(((functionStuff.casting === game.symbaroum.config.CASTING_RES) && !functionStuff.isMaintained ) || ((functionStuff.maintain === game.symbaroum.config.MAINTAIN_RES) && functionStuff.isMaintained));
+                // Get caster level suffix ti get corresponding mystical power maintain config
+                let ret = functionStuff.actor.items.filter(element => element.name == functionStuff.abilityName);
+                let isCasterAdept = (ret.length > 0 && functionStuff.ability.adept.isActive == "active");
+                let isCasterMaster = (ret.length > 0 && functionStuff.ability.master.isActive == "active");
+
+                functionStuff.notResisted = functionStuff.notResisted ?? !(
+                    (
+                        (functionStuff.casting === game.symbaroum.config.CASTING_RES) && !functionStuff.isMaintained
+                    ) ||
+                    (   
+                        !(
+                            // NOT OF
+                            // If caster has master level and maintain master indicates it is not resisted
+                            // Else if caster has adept or master level and maintain adept indicates it is not resisted
+                            // Else if maintain config globaly indicates it is not resisted
+                            ((isCasterMaster && functionStuff["maintain_master"] === game.symbaroum.config.MAINTAIN) ? true :
+                                ((isCasterMaster || isCasterAdept) && functionStuff["maintain_adept"] === game.symbaroum.config.MAINTAIN) ? true :
+                                    functionStuff["maintain"] === game.symbaroum.config.MAINTAIN)
+                        ) && functionStuff.isMaintained
+                    )
+                );
+
                 if(hasTarget && !functionStuff.combat && !functionStuff.notResisted){
                     let targetResMod = checkSpecialResistanceMod(functionStuff.targetData.actor.system.combat.damageReductions, functionStuff.targetData.autoParams, functionStuff.ability.reference);
                     functionStuff.favour += targetResMod.favour;

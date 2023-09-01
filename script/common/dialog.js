@@ -345,7 +345,29 @@ export async function prepareRollAttribute(actor, attributeName, armor, weapon, 
                 ecData.dmgModifierAttackSupp= damModifierAttSup;
                 ecData.dmgModifierAttackSuppNPC= damModifierAttSupNPC;
             }
-            ecData.notResisted = ecData.notResisted ?? (((ecData.casting === game.symbaroum.config.CASTING_RES) && !ecData.isMaintained ) || ((ecData.maintain === game.symbaroum.config.MAINTAIN_RES) && ecData.isMaintained));
+            //ecData.notResisted = ecData.notResisted ?? (((ecData.casting === game.symbaroum.config.CASTING_RES) && !ecData.isMaintained ) || ((ecData.maintain === game.symbaroum.config.MAINTAIN_RES) && ecData.isMaintained));
+            // Get caster level suffix ti get corresponding mystical power maintain config
+            let ret = ecData.actor.items.filter(element => element.name == ecData.abilityName);
+            let isCasterAdept = (ret.length > 0 && ecData.ability.adept.isActive == "active");
+            let isCasterMaster = (ret.length > 0 && ecData.ability.master.isActive == "active");
+
+            ecData.notResisted = ecData.notResisted ?? !(
+                (
+                    (ecData.casting === game.symbaroum.config.CASTING_RES) && !ecData.isMaintained
+                ) ||
+                (   
+                    !(
+                        // NOT OF
+                        // If caster has master level and maintain master indicate it is not resisted
+                        // Else if caster has adept or master level and maintain adept indicate it is not resisted
+                        // Else if maintain config globaly indicate it is not resisted
+                        ((isCasterMaster && ecData["maintain_master"] === game.symbaroum.config.MAINTAIN) ? true :
+                            ((isCasterMaster || isCasterAdept) && ecData["maintain_adept"] === game.symbaroum.config.MAINTAIN) ? true :
+                                ecData["maintain"] === game.symbaroum.config.MAINTAIN)
+                    ) && ecData.isMaintained
+                )
+            );
+
             if(hasTarget && !ecData.notResisted){
               if(ecData.attackFromPC || ecData.targetData.actor.type === "monster"){
                   ecData.resistRoll = false;
